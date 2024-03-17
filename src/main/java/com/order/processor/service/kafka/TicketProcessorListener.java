@@ -3,11 +3,9 @@ package com.order.processor.service.kafka;
 import com.order.processor.dao.entity.Order;
 import com.order.processor.dao.entity.OrderDetail;
 import com.order.processor.dao.entity.Ticket;
-import com.order.processor.dao.entity.User;
 import com.order.processor.dao.repository.OrderDetailRepository;
 import com.order.processor.dao.repository.OrderRepository;
 import com.order.processor.dao.repository.TicketRepository;
-import com.order.processor.dao.repository.UserRepository;
 import com.order.processor.model.Message;
 import com.order.processor.model.OrderDetailDto;
 import com.order.processor.model.OrderDto;
@@ -33,8 +31,6 @@ public class TicketProcessorListener extends KafkaListener {
 
     private final TicketRepository ticketRepository;
 
-    private final UserRepository userRepository;
-
     private final KafKaSender kafKaSender;
 
     @Value(value = "${spring.kafka.groupId:groupId}")
@@ -44,13 +40,11 @@ public class TicketProcessorListener extends KafkaListener {
                                    OrderDetailRepository orderDetailRepository,
                                    OrderRepository orderRepository,
                                    TicketRepository ticketRepository,
-                                   UserRepository userRepository,
                                    KafKaSender kafKaSender) {
         super(TICKET_ORDERS_TOPIC, groupId, false, factory);
         this.orderRepository = orderRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.ticketRepository = ticketRepository;
-        this.userRepository = userRepository;
         this.kafKaSender = kafKaSender;
     }
 
@@ -63,46 +57,60 @@ public class TicketProcessorListener extends KafkaListener {
     }
 
     private void mapAndSendMessageToTicketEventAndSaveOrders(OrderMessage orderMessage) {
-        User user = userRepository.findById(orderMessage.getOrderDto().getUserId()).get();
-        Order order = mapperToOrderEntity(orderMessage.getOrderDto(), user);
+        OrderDto orderDto = orderMessage.getOrderDto();
+        List<OrderDetailDto> orderDetailDtoList = orderMessage.getOrderDetailDtoList();
 
-        List<OrderDetail> orderDetail = mapToOrderDetailsEntity(orderMessage.getOrderDetailDtoList(), order);
+        Order order = mapperToOrderEntity(orderDto);
+        List<OrderDetail> orderDetail = mapToOrderDetailsEntity(orderDetailDtoList);
+        List<Ticket> tickets = findAnCalculateAvailableTicket(orderDetailDtoList);
 
-        saveOrdersAndTicket(order, orderDetail);
+        saveOrdersAndTicket(order, orderDetail, tickets);
         sendMessageToTicketEvent(orderMessage);
     }
 
-    private Order mapperToOrderEntity(OrderDto orderDto, User user) {
+    private Order mapperToOrderEntity(OrderDto orderDto) {
         return Order.builder()
                 .id(orderDto.getOrderId())
-                .user(user)
+                .userId(orderDto.getUserId())
                 .build();
     }
 
-    private List<OrderDetail> mapToOrderDetailsEntity(List<OrderDetailDto> orderDetailDtoList, Order order) {
+    private List<OrderDetail> mapToOrderDetailsEntity(List<OrderDetailDto> orderDetailDtoList) {
         List<OrderDetail> orderDetailsEntity = new ArrayList<>();
         for (OrderDetailDto orderDetail : orderDetailDtoList) {
-            OrderDetail orderDetailEntity = mapToOrderDetailEntityAndSaveTicket(orderDetail, order);
+            OrderDetail orderDetailEntity = mapToOrderDetailEntity(orderDetail);
             orderDetailsEntity.add(orderDetailEntity);
         }
         return orderDetailsEntity;
     }
 
 
-    private OrderDetail mapToOrderDetailEntityAndSaveTicket(OrderDetailDto orderDetail, Order order) {
-        Ticket ticket = ticketRepository.findById(orderDetail.getTicketId()).get();
-        ticket.setAvailability(ticket.getAvailability() - orderDetail.getQuantity());
-        ticketRepository.save(ticket);
-
+    private OrderDetail mapToOrderDetailEntity(OrderDetailDto orderDetail) {
         return OrderDetail.builder()
                 .id(orderDetail.getOrderDetailId())
-                .ticket(ticket)
-                .order(order)
+                .ticketId(orderDetail.getTicketId())
+                .orderId(orderDetail.getOrderId())
                 .quantity(orderDetail.getQuantity())
                 .build();
     }
 
-    private void saveOrdersAndTicket(Order order, List<OrderDetail> orderDetail) {
+    private List<Ticket> findAnCalculateAvailableTicket(List<OrderDetailDto> orderDetailDtoList) {
+        List<Ticket> tickets = new ArrayList<>();
+        for(OrderDetailDto orderDetailDto : orderDetailDtoList) {
+            Ticket ticket = getTicketById(orderDetailDto.getTicketId());
+            ticket.setAvailability(ticket.getAvailability() -  orderDetailDto.getQuantity());
+            tickets.add(ticket);
+        }
+        return tickets;
+    }
+
+    private Ticket getTicketById(int id) {
+        return ticketRepository.findById(id).
+                orElseThrow(() -> new RuntimeException("Not found ticket id: " + id));
+    }
+
+    private void saveOrdersAndTicket(Order order, List<OrderDetail> orderDetail, List<Ticket> tickets) {
+        ticketRepository.saveAll(tickets);
         orderRepository.save(order);
         orderDetailRepository.saveAll(orderDetail);
     }

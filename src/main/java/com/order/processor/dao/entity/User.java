@@ -18,8 +18,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @OneToMany(mappedBy="user")
-    private Set<Order> orders;
+//    @OneToMany(mappedBy="user")
+//    private Set<Order> orders;
 
     @Column(name = "user_name")
     private String userName;

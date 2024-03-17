@@ -19,12 +19,15 @@ public class Ticket {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name="concert_id")
-    private Concert concert;
+//    @ManyToOne
+//    @JoinColumn(name="concert_id")
+//    private Concert concert;
 
-    @OneToMany(mappedBy="ticket")
-    private Set<OrderDetail> orderDetails;
+//    @OneToMany(mappedBy="ticket")
+//    private Set<OrderDetail> orderDetails;
+
+    @Column(name = "concert_id")
+    private Integer concertId;
 
     @Column(name = "price")
     private BigDecimal price;

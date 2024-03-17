@@ -16,13 +16,19 @@ public class OrderDetail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name="order_id")
-    private Order order;
+//    @ManyToOne
+//    @JoinColumn(name="order_id")
+//    private Order order;
 
-    @ManyToOne
-    @JoinColumn(name="ticket_id")
-    private Ticket ticket;
+//    @ManyToOne
+//    @JoinColumn(name="ticket_id")
+//    private Ticket ticket;
+
+    @Column(name = "order_id")
+    private Integer orderId;
+
+    @Column(name = "ticket_id")
+    private Integer ticketId;
 
     @Column(name = "quantity")
     private Integer quantity;

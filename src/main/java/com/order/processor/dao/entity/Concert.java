@@ -22,8 +22,8 @@ public class Concert {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @OneToMany(mappedBy="concert")
-    private Set<Ticket> tickets;
+//    @OneToMany(mappedBy="concert")
+//    private Set<Ticket> tickets;
 
     @Column(name = "concert_name")
     private String concertName;

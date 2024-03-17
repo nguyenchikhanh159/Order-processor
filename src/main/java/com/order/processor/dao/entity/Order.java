@@ -7,7 +7,6 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
-import java.util.Set;
 
 @Builder
 @AllArgsConstructor
@@ -22,12 +21,15 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name="user_id")
-    private User user;
+//    @ManyToOne
+//    @JoinColumn(name="user_id")
+//    private User user;
 
-    @OneToMany(mappedBy="order")
-    private Set<OrderDetail> orderDetails;
+//    @OneToMany(mappedBy="order")
+//    private Set<OrderDetail> orderDetails;
+
+    @Column(name = "user_id")
+    private Integer userId;
 
     @CreationTimestamp
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
